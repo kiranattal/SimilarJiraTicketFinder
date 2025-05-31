@@ -1,0 +1,8 @@
+{
+  "summary-weightage": 0.8,
+  "description-weightage": 0.2,
+  "cosine-weightage": 0.8,
+  "boost-weightage": 0.2,
+
+  "jql-query": "project = \"${projectKey}\" AND key != \"${currentIssueKey}\" AND status CHANGED TO \"In Progress\" AND assignee IS NOT EMPTY AND comment IS NOT EMPTY ORDER BY updated DESC"
+  }
