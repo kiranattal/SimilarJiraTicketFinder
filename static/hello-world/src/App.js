@@ -40,7 +40,7 @@ function App() {
         <strong>{currentIssue.key}</strong>: {currentIssue.summary}
       </p>
 
-      <h4>Top Similar Issues:</h4>
+      <h4>Top Similar Issues Found:</h4>
 
       {similarIssues.length > 0 ? (
         similarIssues.map((issue, index) => (

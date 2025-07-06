@@ -13,6 +13,8 @@ module.exports = {
 
   // This value determines the minimum cosine similarity score required before
   // applying any heuristic-based boosting. Helps avoid false positives.
-  "similarity-threshold": 0.6
+  // Also used as a cutoff to filter and return only the top similar issues
+  // with a similarity score above this threshold in the final results.
+  "similarity-threshold": 0.5
 
 };
