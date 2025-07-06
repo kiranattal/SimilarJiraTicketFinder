@@ -19,7 +19,7 @@ permissions:
   external:
       fetch:
         backend:
-          - 'https://a962-223-233-81-3.ngrok-free.app'
+          - 'https://sbert-similarity-service.fly.dev/*'
 app:
   runtime:
     name: nodejs22.x

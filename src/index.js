@@ -7,14 +7,17 @@ const TFIDF_WEIGHT = 1 - SEMANTIC_WEIGHT;
 const SEMANTIC_THRESHOLD = 0.6;
 const SIMILARITY_THRESHOLD = weights["similarity-threshold"];
 
+ const SUMMARY_WEIGHT = weights["summary-weightage"];
+ const DESCRIPTION_WEIGHT = weights["description-weightage"];
+
+
+  // Importance of issue description in scoring is lower than summary weight
+  // as descriptions may include more verbose context or unrelated details.
+  // Still useful for capturing additional semantic relevance.
+
+
 const resolver = new Resolver();
 
-function tokenize(text) {
-  return (text || '')
-    .toLowerCase()
-    .split(/\W+/)
-    .filter(t => t);
-}
 
 async function fetchSemanticSimilarity(current, others) {
   const payload = {
@@ -23,7 +26,7 @@ async function fetchSemanticSimilarity(current, others) {
   };
 
   try {
-    const res = await fetch('https://a962-223-233-81-3.ngrok-free.app/similarity', {
+    const res = await fetch('https://sbert-similarity-service.fly.dev/similarity', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -56,8 +59,16 @@ resolver.define('fetchIssues', async ({ context }) => {
   const r = await api.asApp().requestJira(route`/rest/api/3/issue/${key}`);
   const d = await r.json();
 
-  const currentText = `${d.fields.summary} ${d.fields.description?.content?.[0]?.content?.[0]?.text || ''}`;
-  const current = { key, text: currentText };
+  const currentTextSummary = `${d.fields.summary}`;
+  const currentTextDescription =  `${d.fields.description?.content?.[0]?.content?.[0]?.text || ''}`;
+  const currentSummary = { key, text: currentTextSummary };
+  const currentDescription = { key, text: currentTextDescription };
+  const current = {
+      key: key,
+      summary: d.fields.summary,
+      description: d.fields.description?.content?.[0]?.content?.[0]?.text || ''
+      };
+
 
   // 2. Fetch other issues from same project
   const project = d.fields.project.key;
@@ -73,17 +84,25 @@ resolver.define('fetchIssues', async ({ context }) => {
   } while (startAt < total);
 
   // 3. Prepare payload for similarity API
-  const others = all.map(issue => ({
+  const othersSummary = all.map(issue => ({
     key: issue.key,
-    text: `${issue.fields.summary} ${issue.fields.description?.content?.[0]?.content?.[0]?.text || ''}`
+    text: `${issue.fields.summary}`
+  }));
+  const othersDescription = all.map(issue => ({
+    key: issue.key,
+    text: `${issue.fields.description?.content?.[0]?.content?.[0]?.text || ''}`
   }));
 
-  const semanticScores = await fetchSemanticSimilarity(current, others);
+  const semanticScoresSummary = await fetchSemanticSimilarity(currentSummary, othersSummary);
+  const semanticScoresDescription = await fetchSemanticSimilarity(currentDescription, othersDescription);
 
   // 4. Combine and score
   const scored = all.map(issue => {
     const sid = issue.key;
-    const sem = semanticScores[sid] || 0;
+    const semSummary = semanticScoresSummary[sid] || 0;
+    const semDescription=semanticScoresDescription[sid] || 0;
+
+    let sem = semSummary * SUMMARY_WEIGHT + semDescription * DESCRIPTION_WEIGHT
 
     let combined;
     if (sem >= SEMANTIC_THRESHOLD) {
