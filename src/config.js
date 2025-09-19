@@ -15,6 +15,14 @@ module.exports = {
   // applying any heuristic-based boosting. Helps avoid false positives.
   // Also used as a cutoff to filter and return only the top similar issues
   // with a similarity score above this threshold in the final results.
-  "similarity-threshold": 0.5
+  "similarity-threshold": 0.5,
+
+  "semantic_weight" : 0.8,
+   "tf_idf_weight" : 0.2,
+   "semantic_threshold" : 0.6,
+   "max_boost" : 0.1,
+  "boost_issuetype_match" :0.05,
+"boost_labels_overlap" :0.02,
+"boost_components_overlap" :0.02
 
 };
