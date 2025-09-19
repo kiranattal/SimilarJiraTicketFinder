@@ -1,28 +1,33 @@
 import React, { useEffect, useState } from 'react';
-//Forge APIs to interact with backend and listen to events
 import { events, invoke } from '@forge/bridge';
 
 function App() {
-  // State to store the currently selected Jira issue
+  // State to hold the current Jira issue in context
   const [currentIssue, setCurrentIssue] = useState(null);
-  // State to store the list of top similar issues
+  // State to hold the list of similar issues returned from backend
   const [similarIssues, setSimilarIssues] = useState([]);
+  // State to hold the Jira base URL (resolver provides this)
+  const [jiraBaseUrl, setJiraBaseUrl] = useState('');
 
-  // Async function to fetch current issue and similar issues from backend resolver
+  // Function to fetch current issue + similar issues from backend resolver
   const fetchData = async () => {
-    // Invoke the backend 'fetchIssues' function
     const { current, similar } = await invoke('fetchIssues');
-    // Update state with current issue data
     setCurrentIssue(current);
-    // Update state with similar issues or empty array if none
     setSimilarIssues(similar || []);
   };
 
-  useEffect(() => {
-    // Initial data fetch when component mounts
-    fetchData();
+  // Function to fetch the Jira base URL from resolver
+  const fetchBaseUrl = async () => {
+    const baseUrl = await invoke('fetchBaseUrl'); // resolver.js must provide this
+    setJiraBaseUrl(baseUrl);
+  };
 
-    // Listen to changes in Jira issue context and refetch data accordingly
+  // Run on component mount and when Jira issue context changes
+  useEffect(() => {
+    fetchData();
+    fetchBaseUrl();
+
+    // Subscribe to Jira issue change events
     const unsubscribe = events.on('JIRA_ISSUE_CHANGED', () => {
       fetchData();
     });
@@ -30,30 +35,50 @@ function App() {
     return () => unsubscribe && unsubscribe();
   }, []);
 
-  if (!currentIssue) return <div>Loading...</div>;
+  // If current issue not yet loaded → show loading state
+  if (!currentIssue) return <div className="p-4 text-gray-500">Loading...</div>;
 
   return (
-    <div>
-      <h3>Current Issue:</h3>
-      {/* Display current issue key and summary */}
-      <p>
-        <strong>{currentIssue.key}</strong>: {currentIssue.summary}
-      </p>
+    <div className="p-6 max-w-2xl mx-auto">
+      {/* Section: Current Issue */}
+      <div className="mb-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-2">Current Issue</h3>
+        <div className="p-4 rounded-2xl shadow bg-white border border-gray-200">
+          <p className="text-gray-700">
+            <strong className="text-indigo-600">{currentIssue.key}</strong>: {currentIssue.summary}
+          </p>
+        </div>
+      </div>
 
-      <h4>Top Similar Issues Found:</h4>
+      {/* Section: Similar Issues */}
+      <h4 className="text-lg font-semibold text-gray-800 mb-3">Top Similar Issues</h4>
 
       {similarIssues.length > 0 ? (
-        similarIssues.map((issue, index) => (
-          <div key={issue.key} style={{ marginBottom: '1rem' }}>
-            {/* Numbered list of similar issues with key and summary */}
-            <strong>{index + 1}. {issue.key}</strong><br />
-            Summary: {issue.summary}<br />
-            {/* Similarity score rounded to two decimals */}
-            Similarity Score: {issue.score?.toFixed(2) ?? 'N/A'}
-          </div>
-        ))
+        <div className="space-y-4">
+          {similarIssues.map((issue, index) => (
+            <div
+              key={issue.key}
+              className="p-4 rounded-2xl shadow bg-white border border-gray-100 hover:shadow-md transition"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <a
+                  href={`${jiraBaseUrl}/browse/${issue.key}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 font-bold hover:underline"
+                >
+                  {index + 1}. {issue.key}
+                </a>
+                <p className="text-gray-700">{issue.summary}</p>
+                <span className="text-sm text-gray-500">
+                  Score: {issue.score?.toFixed(2) ?? 'N/A'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
-        <p>No similar issues found.</p>
+        <p className="text-gray-500">No similar issues found.</p>
       )}
     </div>
   );
