@@ -117,7 +117,7 @@ async function fetchSemanticSimilarity(current, others) {
     });
 
     if (!res.ok) {
-      console.error('Semantic API error:', res.status, await res.text());
+      console.error('Semantic API error is', res.status, await res.text());
       return {};
     }
 
@@ -127,7 +127,7 @@ async function fetchSemanticSimilarity(current, others) {
       return map;
     }, {});
   } catch (error) {
-    console.error('Semantic API call failed:', error);
+    console.error('Semantic API call failed due to', error);
     return {};
   }
 }
